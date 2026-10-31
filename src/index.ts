@@ -1,1 +1,1 @@
-console.log("Nexus API application started.");
+import "./server.js";
