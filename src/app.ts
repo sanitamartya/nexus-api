@@ -1,11 +1,11 @@
 import express from "express";
 
+import { errorHandler } from "./middleware/error-handler.js";
+
 const app = express();
 
-// Hide Express technology information from response headers.
 app.disable("x-powered-by");
 
-// Health endpoint
 app.get("/health", (_req, res) => {
   res.status(200).json({
     status: "ok",
@@ -13,7 +13,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Handle unknown routes
+// 404 handler must come after all routes.
 app.use((_req, res) => {
   res.status(404).json({
     success: false,
@@ -23,5 +23,8 @@ app.use((_req, res) => {
     },
   });
 });
+
+// Error handler must be last.
+app.use(errorHandler);
 
 export default app;
