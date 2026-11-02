@@ -3,6 +3,8 @@ import express from "express";
 import { errorHandler } from "./middleware/error-handler.js";
 import { createUserSchema } from "./schemas/user.schema.js";
 import { validateRequest } from "./middleware/validate-request.js";
+import type { CreateUserInput } from "./schemas/user.schema.js";
+import { successResponse } from "./utils/api-response.js";
 
 const app = express();
 app.use(express.json());
@@ -16,16 +18,16 @@ app.get("/health", (_req, res) => {
 });
 
 app.post("/api/v1/users", validateRequest(createUserSchema), (req, res) => {
-  const { name, email } = req.body;
+  const user: CreateUserInput = req.body;
 
-  res.status(201).json({
-    success: true,
-    message: "User data received successfully.",
-    data: {
+  const { name, email } = user;
+
+  res.status(201).json(
+    successResponse("User data received successfully.", {
       name,
       email,
-    },
-  });
+    }),
+  );
 });
 
 // 404 handler must come after all routes.

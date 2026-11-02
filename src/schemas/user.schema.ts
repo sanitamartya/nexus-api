@@ -15,3 +15,5 @@ export const createUserSchema = z
       .max(254, "Email must not exceed 254 characters."),
   })
   .strict();
+
+export type CreateUserInput = z.infer<typeof createUserSchema>;
