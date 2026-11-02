@@ -1,10 +1,9 @@
 import { createServer } from "node:http";
 import app from "./app.js";
-
-const PORT = 3000;
+import { env } from "./config/env.js";
 
 const server = createServer(app);
 
-server.listen(PORT, () => {
-  console.log(`Nexus API server listening on port ${PORT}`);
+server.listen(env.PORT, () => {
+  console.log(`Nexus API server listening on port ${env.PORT}`);
 });
