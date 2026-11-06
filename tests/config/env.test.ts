@@ -13,7 +13,7 @@ describe("Environment configuration", () => {
         `
           process.env.PORT = "4000";
           process.env.NODE_ENV = "development";
-
+          process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
           const { env } = await import("./src/config/env.ts");
 
           if (env.PORT !== 4000) {
@@ -41,6 +41,7 @@ describe("Environment configuration", () => {
         `
           process.env.PORT = "hello";
           process.env.NODE_ENV = "development";
+          process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
 
           await import("./src/config/env.ts");
         `,

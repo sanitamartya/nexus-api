@@ -1,12 +1,15 @@
 import express from "express";
 
+import { AppError } from "./errors/app-error.js";
+import { Prisma } from "./generated/prisma/client.js";
+import { prisma } from "./config/database.js";
 import { errorHandler } from "./middleware/error-handler.js";
-import { createUserSchema } from "./schemas/user.schema.js";
 import { validateRequest } from "./middleware/validate-request.js";
-import type { CreateUserInput } from "./schemas/user.schema.js";
+import { createUserSchema } from "./schemas/user.schema.js";
 import { successResponse } from "./utils/api-response.js";
 
 const app = express();
+
 app.use(express.json());
 app.disable("x-powered-by");
 
@@ -17,18 +20,37 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.post("/api/v1/users", validateRequest(createUserSchema), (req, res) => {
-  const user: CreateUserInput = req.body;
+app.post(
+  "/api/v1/users",
+  validateRequest(createUserSchema),
+  async (req, res) => {
+    try {
+      const { name, email } = req.body;
 
-  const { name, email } = user;
+      const user = await prisma.user.create({
+        data: {
+          name,
+          email,
+        },
+      });
 
-  res.status(201).json(
-    successResponse("User data received successfully.", {
-      name,
-      email,
-    }),
-  );
-});
+      res.status(201).json(successResponse("User created successfully.", user));
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        throw new AppError(
+          "A user with this email already exists.",
+          409,
+          "USER_ALREADY_EXISTS",
+        );
+      }
+
+      throw error;
+    }
+  },
+);
 
 // 404 handler must come after all routes.
 app.use((_req, res) => {

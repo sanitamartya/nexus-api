@@ -1,10 +1,25 @@
+vi.mock("../src/config/database.js", () => ({
+  prisma: {
+    user: {
+      create: vi.fn(),
+    },
+  },
+}));
+
+import { prisma } from "../src/config/database.js";
+beforeEach(() => {
+  vi.mocked(prisma.user.create).mockReset();
+});
+
 import express from "express";
 import { errorHandler } from "../src/middleware/error-handler.js";
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import request from "supertest";
 import app from "../src/app.js";
+
+import { Prisma } from "../src/generated/prisma/client.js";
 
 describe("GET /health", () => {
   it("should return 200 and healthy status", async () => {
@@ -38,6 +53,14 @@ describe("POST /api/v1/users", () => {
   });
 
   it("should accept valid user data", async () => {
+    vi.mocked(prisma.user.create).mockResolvedValue({
+      id: "test-user-id",
+      name: "Alex",
+      email: "alex@example.com",
+      createdAt: new Date("2026-11-03T10:00:00.000Z"),
+      updatedAt: new Date("2026-11-03T10:00:00.000Z"),
+    } as never);
+
     const response = await request(app).post("/api/v1/users").send({
       name: "Alex",
       email: "alex@example.com",
@@ -45,9 +68,17 @@ describe("POST /api/v1/users", () => {
 
     expect(response.status).toBe(201);
 
-    expect(response.body.data).toEqual({
+    expect(response.body.data).toMatchObject({
+      id: "test-user-id",
       name: "Alex",
       email: "alex@example.com",
+    });
+
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: {
+        name: "Alex",
+        email: "alex@example.com",
+      },
     });
   });
 
@@ -136,5 +167,31 @@ describe("Error handling", () => {
     expect(JSON.stringify(response.body)).not.toContain(
       "Internal database connection details",
     );
+  });
+  it("should reject a duplicate email address", async () => {
+    vi.mocked(prisma.user.create).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+        code: "P2002",
+        clientVersion: "7.10.1",
+        meta: {
+          target: ["email"],
+        },
+      }),
+    );
+
+    const response = await request(app).post("/api/v1/users").send({
+      name: "Alex",
+      email: "alex@example.com",
+    });
+
+    expect(response.status).toBe(409);
+
+    expect(response.body).toEqual({
+      success: false,
+      error: {
+        code: "USER_ALREADY_EXISTS",
+        message: "A user with this email already exists.",
+      },
+    });
   });
 });
